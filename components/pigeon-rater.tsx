@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { analyzePigeonImage, createPigeon } from '@/lib/supabase-helpers'
+import { Badge } from '@/components/ui/badge'
 
 const NYC_LANDMARKS = [
   { name: 'Empire State Building', bonus: 50 },
@@ -34,6 +35,7 @@ interface RatingResult {
   overallScore: number
   funDescription: string
   bonusPoints: number
+  analysisMethod?: 'google-vision' | 'fallback' // Add this to track method used
 }
 
 export function PigeonRater() {
@@ -85,11 +87,20 @@ export function PigeonRater() {
     setIsAnalyzing(true)
     try {
       const result = await analyzePigeonImage(selectedImage, selectedLandmark)
-      setRatingResult(result)
+      
+      // Check if this was from Google Vision API or fallback
+      const analysisMethod = result.visionAnalysis ? 'google-vision' : 'fallback'
+      
+      setRatingResult({
+        ...result,
+        analysisMethod
+      })
       
       toast({
         title: "Analysis Complete!",
-        description: "Your pigeon has been rated by our AI expert!",
+        description: analysisMethod === 'google-vision' 
+          ? "Your pigeon analyzed by Google Cloud Vision AI!" 
+          : "Your pigeon rated (Vision API unavailable)",
       })
     } catch (error) {
       console.error('Analysis error:', error)
@@ -275,6 +286,17 @@ export function PigeonRater() {
                 <CardTitle className="flex items-center space-x-2">
                   <Star className="h-5 w-5 text-yellow-600" />
                   <span>Pigeon Analysis Results</span>
+                  {ratingResult.analysisMethod && (
+                    <Badge 
+                      variant={ratingResult.analysisMethod === 'google-vision' ? 'default' : 'secondary'}
+                      className={ratingResult.analysisMethod === 'google-vision' 
+                        ? 'bg-green-600 text-white' 
+                        : 'bg-gray-500 text-white'
+                      }
+                    >
+                      {ratingResult.analysisMethod === 'google-vision' ? '🤖 AI Vision' : '🎭 Fallback'}
+                    </Badge>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">

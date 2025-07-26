@@ -20,6 +20,7 @@ interface PigeonAnalysis {
   overallScore: number
   funDescription: string
   bonusPoints: number
+  visionAnalysis?: any // Google Cloud Vision analysis data
 }
 
 // Pigeon database operations
@@ -88,6 +89,8 @@ export async function analyzePigeonImage(imageData: string, landmark: string): P
   }
   
   try {
+    console.log('🤖 Calling Google Cloud Vision API via Netlify Function...')
+    
     const response = await fetch('/.netlify/functions/analyze-pigeon', {
       method: 'POST',
       headers: {
@@ -105,19 +108,35 @@ export async function analyzePigeonImage(imageData: string, landmark: string): P
 
     const result = await response.json();
     
+    console.log('✅ Google Cloud Vision Analysis Result:', {
+      landmark,
+      ratings: {
+        attitude: result.attitudeRating,
+        strut: result.strutRating,
+        judging: result.touristJudgingRating,
+        overall: result.overallScore
+      },
+      visionData: result.visionAnalysis
+    });
+    
     return {
       attitudeRating: result.attitudeRating,
       strutRating: result.strutRating,
       touristJudgingRating: result.touristJudgingRating,
       overallScore: result.overallScore,
       funDescription: result.funDescription,
-      bonusPoints: result.bonusPoints
+      bonusPoints: result.bonusPoints,
+      visionAnalysis: result.visionAnalysis // Include Google Vision data for verification
     };
   } catch (error) {
-    console.error('Google Cloud Vision analysis failed, falling back to mock:', error);
+    console.warn('❌ Google Cloud Vision failed, using fallback:', error);
+    console.log('🔄 Falling back to mock analysis...');
     
     // Fallback to mock analysis if Google Cloud Vision fails
-    return mockPigeonAnalysis(landmark);
+    const mockResult = mockPigeonAnalysis(landmark);
+    console.log('🎭 Mock Analysis Result:', mockResult);
+    
+    return mockResult;
   }
 }
 
