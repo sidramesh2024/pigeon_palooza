@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
+import { getLeaderboard } from '@/lib/supabase-helpers'
 
 interface Pigeon {
   id: string
@@ -32,11 +33,8 @@ export function PigeonLeaderboard() {
 
   const fetchTopPigeons = async () => {
     try {
-      const response = await fetch('/api/leaderboard')
-      if (response.ok) {
-        const data = await response.json()
-        setTopPigeons(data)
-      }
+      const data = await getLeaderboard(50)
+      setTopPigeons(data)
     } catch (error) {
       console.error('Failed to fetch leaderboard:', error)
     } finally {

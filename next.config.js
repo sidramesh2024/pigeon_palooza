@@ -3,7 +3,8 @@ const path = require('path');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || '.next',
-  output: process.env.NEXT_OUTPUT_MODE,
+  output: 'export', // Enable static export for Netlify
+  trailingSlash: true, // Required for static export
   experimental: {
     outputFileTracingRoot: path.join(__dirname, '../'),
   },

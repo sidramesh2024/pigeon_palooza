@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
+import { getAllPigeons } from '@/lib/supabase-helpers'
 
 interface Pigeon {
   id: string
@@ -32,11 +33,8 @@ export function PigeonGallery() {
 
   const fetchPigeons = async () => {
     try {
-      const response = await fetch('/api/pigeons')
-      if (response.ok) {
-        const data = await response.json()
-        setPigeons(data)
-      }
+      const data = await getAllPigeons()
+      setPigeons(data)
     } catch (error) {
       console.error('Failed to fetch pigeons:', error)
     } finally {

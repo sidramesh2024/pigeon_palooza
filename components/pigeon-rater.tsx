@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
+import { analyzePigeonImage, createPigeon } from '@/lib/supabase-helpers'
 
 const NYC_LANDMARKS = [
   { name: 'Empire State Building', bonus: 50 },
@@ -83,22 +84,7 @@ export function PigeonRater() {
 
     setIsAnalyzing(true)
     try {
-      const response = await fetch('/api/analyze-pigeon', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageData: selectedImage,
-          landmark: selectedLandmark,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Analysis failed')
-      }
-
-      const result = await response.json()
+      const result = await analyzePigeonImage(selectedImage, selectedLandmark)
       setRatingResult(result)
       
       toast({
@@ -122,22 +108,17 @@ export function PigeonRater() {
 
     setIsSubmitting(true)
     try {
-      const response = await fetch('/api/submit-pigeon', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageData: selectedImage,
-          landmark: selectedLandmark,
-          submittedBy: submitterName || "Anonymous New Yorker",
-          ...ratingResult,
-        }),
+      await createPigeon({
+        imageUrl: selectedImage,
+        landmark: selectedLandmark,
+        submittedBy: submitterName || "Anonymous New Yorker",
+        attitudeRating: ratingResult.attitudeRating,
+        strutRating: ratingResult.strutRating,
+        touristJudgingRating: ratingResult.touristJudgingRating,
+        overallScore: ratingResult.overallScore,
+        funDescription: ratingResult.funDescription,
+        bonusPoints: ratingResult.bonusPoints
       })
-
-      if (!response.ok) {
-        throw new Error('Submission failed')
-      }
 
       toast({
         title: "Pigeon Submitted!",
