@@ -33,16 +33,39 @@ let visionClient = null;
 function initializeVisionClient() {
   if (!visionClient) {
     try {
-      // Use service account from environment variable
-      const serviceAccount = JSON.parse(process.env.GOOGLE_CLOUD_SERVICE_ACCOUNT || '{}');
+      console.log('🔧 Initializing Google Cloud Vision client...');
       
+      // Check if environment variable exists
+      const serviceAccountJson = process.env.GOOGLE_CLOUD_SERVICE_ACCOUNT;
+      if (!serviceAccountJson) {
+        throw new Error('GOOGLE_CLOUD_SERVICE_ACCOUNT environment variable not found');
+      }
+      
+      console.log('📝 Service account JSON length:', serviceAccountJson.length);
+      
+      // Parse service account JSON
+      let serviceAccount;
+      try {
+        serviceAccount = JSON.parse(serviceAccountJson);
+        console.log('✅ Service account JSON parsed successfully');
+        console.log('📋 Project ID:', serviceAccount.project_id);
+        console.log('📧 Client email:', serviceAccount.client_email);
+      } catch (parseError) {
+        console.error('❌ Failed to parse service account JSON:', parseError.message);
+        throw new Error('Invalid JSON in GOOGLE_CLOUD_SERVICE_ACCOUNT');
+      }
+      
+      // Initialize Vision client
       visionClient = new vision.ImageAnnotatorClient({
         credentials: serviceAccount,
         projectId: serviceAccount.project_id
       });
+      
+      console.log('✅ Google Cloud Vision client initialized successfully');
+      
     } catch (error) {
-      console.error('Failed to initialize Vision client:', error);
-      throw new Error('Vision API not properly configured');
+      console.error('❌ Failed to initialize Vision client:', error.message);
+      throw error;
     }
   }
   return visionClient;
@@ -50,6 +73,8 @@ function initializeVisionClient() {
 
 // Analyze image for pigeon characteristics
 function analyzePigeonFromVision(labels, objects, faces) {
+  console.log('🔍 Analyzing pigeon characteristics from Vision data...');
+  
   let attitudeRating = 3; // Base rating
   let strutRating = 3;
   let touristJudgingRating = 3;
@@ -103,10 +128,15 @@ function analyzePigeonFromVision(labels, objects, faces) {
   strutRating = Math.min(5, Math.max(1, strutRating + randomVariation() - randomVariation()));
   touristJudgingRating = Math.min(5, Math.max(1, touristJudgingRating + randomVariation() - randomVariation()));
 
+  console.log('📊 Generated ratings:', { attitudeRating, strutRating, touristJudgingRating });
+  
   return { attitudeRating, strutRating, touristJudgingRating };
 }
 
 exports.handler = async (event, context) => {
+  console.log('🚀 Netlify function started');
+  console.log('🔍 HTTP Method:', event.httpMethod);
+  
   // Set CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -116,6 +146,7 @@ exports.handler = async (event, context) => {
 
   // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
+    console.log('✅ Handling OPTIONS preflight request');
     return {
       statusCode: 200,
       headers,
@@ -124,6 +155,7 @@ exports.handler = async (event, context) => {
   }
 
   if (event.httpMethod !== 'POST') {
+    console.log('❌ Invalid HTTP method:', event.httpMethod);
     return {
       statusCode: 405,
       headers,
@@ -132,9 +164,11 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    console.log('📝 Parsing request body...');
     const { imageData, landmark } = JSON.parse(event.body);
 
     if (!imageData || !landmark) {
+      console.log('❌ Missing required fields');
       return {
         statusCode: 400,
         headers,
@@ -142,26 +176,44 @@ exports.handler = async (event, context) => {
       };
     }
 
+    console.log('📍 Landmark:', landmark);
+    console.log('🖼️ Image data length:', imageData.length);
+
     // Initialize Vision client
+    console.log('🤖 Initializing Google Cloud Vision...');
     const client = initializeVisionClient();
 
     // Convert base64 to buffer
+    console.log('🔄 Converting image data...');
     const imageBuffer = Buffer.from(imageData.split(',')[1], 'base64');
+    console.log('📦 Image buffer size:', imageBuffer.length, 'bytes');
 
     // Analyze image with Google Cloud Vision
+    console.log('📸 Calling Google Cloud Vision API...');
+    
     const [labelResult] = await client.labelDetection({ image: { content: imageBuffer } });
+    console.log('✅ Label detection completed');
+    
     const [objectResult] = await client.objectLocalization({ image: { content: imageBuffer } });
+    console.log('✅ Object localization completed');
+    
     const [faceResult] = await client.faceDetection({ image: { content: imageBuffer } });
+    console.log('✅ Face detection completed');
 
     const labels = labelResult.labelAnnotations || [];
     const objects = objectResult.localizedObjectAnnotations || [];
     const faces = faceResult.faceAnnotations || [];
 
-    console.log('Vision API results:', {
-      labels: labels.slice(0, 5).map(l => ({ description: l.description, score: l.score })),
-      objects: objects.slice(0, 3).map(o => ({ name: o.name, score: o.score })),
-      faces: faces.length
+    console.log('📊 Vision API results summary:', {
+      labelsCount: labels.length,
+      objectsCount: objects.length,
+      facesCount: faces.length
     });
+
+    console.log('🏷️ Top labels:', labels.slice(0, 5).map(l => ({ 
+      description: l.description, 
+      score: Math.round(l.score * 100) + '%' 
+    })));
 
     // Analyze pigeon characteristics
     const { attitudeRating, strutRating, touristJudgingRating } = analyzePigeonFromVision(labels, objects, faces);
@@ -191,6 +243,13 @@ exports.handler = async (event, context) => {
       }
     };
 
+    console.log('✅ Analysis completed successfully');
+    console.log('📋 Final result:', {
+      ratings: `${attitudeRating}/${strutRating}/${touristJudgingRating}`,
+      overall: overallScore,
+      bonus: bonusPoints
+    });
+
     return {
       statusCode: 200,
       headers,
@@ -198,14 +257,24 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('Pigeon analysis error:', error);
+    console.error('💥 ERROR in analyze-pigeon function:');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    
+    // Check if it's a Vision API specific error
+    if (error.message.includes('GOOGLE_CLOUD_SERVICE_ACCOUNT')) {
+      console.error('🔑 Environment variable issue detected');
+    } else if (error.code) {
+      console.error('🌐 Google API error code:', error.code);
+    }
     
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({ 
-        error: 'Failed to analyze pigeon. Our AI expert is taking a bagel break!',
-        details: error.message 
+        error: 'Failed to analyze pigeon. Check function logs for details.',
+        details: error.message,
+        type: error.constructor.name
       }),
     };
   }
