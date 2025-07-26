@@ -32,6 +32,12 @@ export function PigeonGallery() {
   }, [])
 
   const fetchPigeons = async () => {
+    // Only fetch on client side to avoid build-time errors
+    if (typeof window === 'undefined') {
+      setLoading(false)
+      return
+    }
+    
     try {
       const data = await getAllPigeons()
       setPigeons(data)

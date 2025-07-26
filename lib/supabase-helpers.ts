@@ -24,6 +24,11 @@ interface PigeonAnalysis {
 
 // Pigeon database operations
 export async function createPigeon(pigeonData: PigeonData) {
+  // Only run on client side
+  if (typeof window === 'undefined') {
+    throw new Error('Database operations only available on client side')
+  }
+  
   const { data, error } = await supabase
     .from('pigeons')
     .insert([{
@@ -45,6 +50,11 @@ export async function createPigeon(pigeonData: PigeonData) {
 }
 
 export async function getAllPigeons() {
+  // Only run on client side
+  if (typeof window === 'undefined') {
+    return []
+  }
+  
   const { data, error } = await supabase
     .from('pigeons')
     .select('*')
@@ -55,6 +65,11 @@ export async function getAllPigeons() {
 }
 
 export async function getLeaderboard(limit: number = 50) {
+  // Only run on client side
+  if (typeof window === 'undefined') {
+    return []
+  }
+  
   const { data, error } = await supabase
     .from('pigeons')
     .select('*')
