@@ -14,7 +14,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+node_modules/
+.next/
 lib64/
 parts/
 sdist/
