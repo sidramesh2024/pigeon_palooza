@@ -11,6 +11,7 @@ __pycache__/
 build/
 develop-eggs/
 dist/
+out/
 downloads/
 eggs/
 .eggs/
@@ -137,6 +138,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
 .envrc
 .venv
 env/
@@ -144,6 +146,9 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Google Cloud service account credentials
+nycsilly.json
 
 # Spyder project settings
 .spyderproject
