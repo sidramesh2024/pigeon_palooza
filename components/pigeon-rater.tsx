@@ -100,7 +100,7 @@ export function PigeonRater() {
         title: "Analysis Complete!",
         description: analysisMethod === 'google-vision' 
           ? "Your pigeon analyzed by Google Cloud Vision AI!" 
-          : "Your pigeon rated (Vision API unavailable)",
+          : "Your pigeon rated",
       })
     } catch (error) {
       console.error('Analysis error:', error)
