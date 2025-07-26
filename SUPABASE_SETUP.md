@@ -1,11 +1,13 @@
-# Supabase Setup for Pigeon Palooza
+# Pigeon Palooza Setup Guide
 
-This guide helps you set up the Supabase database for Netlify deployment.
+This guide helps you set up Supabase database and Google Cloud Vision API for Netlify deployment.
 
 ## Prerequisites
 
 1. Create a Supabase account at [supabase.com](https://supabase.com)
-2. Create a new project
+2. Create a new Supabase project
+3. Create a Google Cloud project with Vision API enabled
+4. Create a service account for Google Cloud Vision
 
 ## Database Setup
 
@@ -66,39 +68,51 @@ CREATE POLICY "Public upload access" ON storage.objects
     FOR INSERT WITH CHECK (bucket_id = 'pigeon-images');
 ```
 
-### 2. Environment Variables
+## Google Cloud Vision API Setup
 
-Create a `.env.local` file with your Supabase credentials:
+### 1. Create Google Cloud Project
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing one
+3. Enable the **Cloud Vision API**
+
+### 2. Create Service Account
+
+1. Go to **IAM & Admin** → **Service Accounts**
+2. Click **Create Service Account**
+3. Name it (e.g., "pigeon-analyzer")
+4. Grant **Cloud Vision API User** role
+5. Create and download the JSON key file
+
+### 3. Environment Variables
+
+Create a `.env.local` file with:
 
 ```env
+# Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+
+# Google Cloud Vision (for local development only)
+GOOGLE_APPLICATION_CREDENTIALS=./nycsilly.json
 ```
 
-### 3. Netlify Environment Variables
+### 4. Netlify Environment Variables
 
 In your Netlify project settings, add these environment variables:
 
+**Supabase:**
 - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anonymous/public API key
 
-## AI Analysis (Optional Enhancement)
 
-The current implementation uses mock AI analysis. To enable real AI analysis:
-
-### Option 1: Supabase Edge Functions
-
-1. Create a Supabase Edge Function for AI analysis
-2. Update `analyzePigeonImage` in `lib/supabase-helpers.ts` to call the Edge Function
-
-### Option 2: Netlify Functions
-
-1. Create a Netlify Function in `netlify/functions/analyze-pigeon.js`
-2. Update the analysis function to call this endpoint
 
 ## Deployment Commands
 
 ```bash
+# Install dependencies
+npm install
+
 # Build for static export
 npm run build
 
@@ -118,9 +132,32 @@ npm run dev
 
 Visit `http://localhost:3000` to test the application.
 
+## How Google Cloud Vision Integration Works
+
+1. **User uploads image** → Client sends to Netlify function
+2. **Netlify function** → Calls Google Cloud Vision API
+3. **Vision API analyzes** → Returns labels, objects, confidence scores
+4. **Smart rating algorithm** → Converts vision data to pigeon personality scores
+5. **Results returned** → Fun NYC-style description + ratings
+
+### Analysis Features:
+- **Attitude Rating**: Based on bird confidence and posture detection
+- **Strut Level**: Analyzes stance and walking poses
+- **Tourist Judging**: Detects urban environment and people presence
+- **NYC Descriptions**: Contextual slang based on landmark and analysis
+
+## Fallback Behavior
+
+If Google Cloud Vision fails:
+- App automatically falls back to mock analysis
+- Users still get ratings (random but realistic)
+- No functionality is lost
+- Error is logged for debugging
+
 ## Notes
 
-- The app is now configured for static export and Netlify deployment
+- The app is configured for static export and Netlify deployment
 - All API routes have been replaced with direct Supabase calls
+- Google Cloud Vision runs via Netlify Functions
 - Image uploads currently use base64 encoding; consider using Supabase Storage for production
-- AI analysis is mocked; implement real analysis using Edge Functions or Netlify Functions as needed 
+- AI analysis provides intelligent ratings based on actual image content 

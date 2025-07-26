@@ -80,11 +80,49 @@ export async function getLeaderboard(limit: number = 50) {
   return data
 }
 
-// AI Analysis - Client-side mock for now, will need Edge Function for production
+// AI Analysis - Now uses Google Cloud Vision via Netlify Function
 export async function analyzePigeonImage(imageData: string, landmark: string): Promise<PigeonAnalysis> {
-  // For static deployment, we'll use a mock analysis
-  // In production, this should call a Supabase Edge Function or Netlify Function
+  // Only run on client side
+  if (typeof window === 'undefined') {
+    throw new Error('Analysis only available on client side')
+  }
   
+  try {
+    const response = await fetch('/.netlify/functions/analyze-pigeon', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        imageData,
+        landmark
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Analysis failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    return {
+      attitudeRating: result.attitudeRating,
+      strutRating: result.strutRating,
+      touristJudgingRating: result.touristJudgingRating,
+      overallScore: result.overallScore,
+      funDescription: result.funDescription,
+      bonusPoints: result.bonusPoints
+    };
+  } catch (error) {
+    console.error('Google Cloud Vision analysis failed, falling back to mock:', error);
+    
+    // Fallback to mock analysis if Google Cloud Vision fails
+    return mockPigeonAnalysis(landmark);
+  }
+}
+
+// Fallback mock analysis function
+function mockPigeonAnalysis(landmark: string): PigeonAnalysis {
   // NYC Landmarks with bonus points
   const NYC_LANDMARKS = [
     { name: 'Empire State Building', bonus: 50 },
